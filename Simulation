@@ -1,7 +1,54 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#define biler_2020 125200
+#define total_arlig_vaekst 0.027
+#define arlig_vaekst_bro 0.0117
+#define arlig_vaekst_tunnel 0.033
+#define biler_2020_bro 34400
+#define biler_2020_tunnel 90800
+#define biler_2020_bro_med_Egholm 26900
+#define biler_2020_tunnel_med_Egholm 69600
+#define kapacitet_bro    31000
+#define kapacitet_tunnel 80000
+#define kapacitet_egholm 59000
+#define antal_baner 2
+#define laengde_af_bro 105
+
+int Egholm_linje(void);
 
 int main(void){
-  printf("Hello world");
+     int i,j;
+    int bro[antal_baner][laengde_af_bro];
+    for(i=0; i<antal_baner; i++) {
+      for(j=0;j<laengde_af_bro;j++) {
+          bro[i][j]=0;
+          printf("%d",bro[i][j]);
+          if (j==(laengde_af_bro-1)){
+              printf("\n");}}}
+        
+
+    Egholm_linje();
   return EXIT_SUCCESs;
+}
+int Egholm_linje(){
+    int n,k;
+    float vbro,ybro,vtunel,ytunel,Egholm_trafik,ekstravaegt_bro=0,ekstravaegt_tunnel=0;
+            
+   for (k=2020;Egholm_trafik<kapacitet_egholm;k++){
+        n = k - 2020;
+        vbro=arlig_vaekst_bro*biler_2020_bro_med_Egholm*n;    
+        ybro=biler_2020_bro_med_Egholm+vbro;
+        vtunel=arlig_vaekst_tunnel*biler_2020_tunnel_med_Egholm*n;
+        ytunel=biler_2020_tunnel_med_Egholm+vtunel;
+        Egholm_trafik=28700;
+        if(ybro>kapacitet_bro){
+            ekstravaegt_bro=ybro-kapacitet_bro;}
+            if(ytunel>kapacitet_tunnel){
+               ekstravaegt_tunnel=ytunel-kapacitet_tunnel;}
+               Egholm_trafik=ekstravaegt_bro+ekstravaegt_tunnel+Egholm_trafik;
+    }
+    
+            printf("Egholms kapacitet bliver opbrugt i ar : %d\n",k-1);
+            return k-1;
 }
