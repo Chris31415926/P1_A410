@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <stdio.h> 
 #include <stdlib.h>
 #include <math.h>
 #define biler_2020 125200
@@ -15,40 +15,86 @@
 #define antal_baner 2
 #define laengde_af_bro 105
 
-int Egholm_linje(void);
+float Egholm_linje(int k,int Egholm_trafik);
+int* search_bro (int bro[antal_baner][laengde_af_bro]);
 
-int main(void){
-     int i,j;
+int main (void){
+    int i,j,k;
+    int Egholmtrafik=28700;
     int bro[antal_baner][laengde_af_bro];
+    int *B;
     for(i=0; i<antal_baner; i++) {
       for(j=0;j<laengde_af_bro;j++) {
           bro[i][j]=0;
+          bro[0][1]=1;
+          bro[1][50]=1;
           printf("%d",bro[i][j]);
           if (j==(laengde_af_bro-1)){
-              printf("\n");}}}
+              printf("\n");
+              }}}
+
+     for (k=2020;Egholmtrafik<kapacitet_egholm;k++){
+        Egholmtrafik=Egholm_linje(k,Egholmtrafik);
+        printf("\n");
+
+        B=search_bro(bro);
+
         
 
-    Egholm_linje();
-  return EXIT_SUCCESs;
+        for(i=0; i<antal_baner; i++) {
+      for(j=0;j<laengde_af_bro;j++) {
+          bro[i][j]=B[i*laengde_af_bro+j];
+           printf("%d",bro[i][j]);
+          if (j==(laengde_af_bro-1)){
+              printf("\n");
+               }}}
+     free (B);
+     }
+
+     
+
+    return 0;
 }
-int Egholm_linje(){
-    int n,k;
-    float vbro,ybro,vtunel,ytunel,Egholm_trafik,ekstravaegt_bro=0,ekstravaegt_tunnel=0;
-            
-   for (k=2020;Egholm_trafik<kapacitet_egholm;k++){
+
+float Egholm_linje(int k,int Egholm_trafik){
+    int n;
+    float vbro,ybro,vtunel,ytunel,ekstravaegt_bro=0,ekstravaegt_tunnel=0;
+        
         n = k - 2020;
         vbro=arlig_vaekst_bro*biler_2020_bro_med_Egholm*n;    
         ybro=biler_2020_bro_med_Egholm+vbro;
         vtunel=arlig_vaekst_tunnel*biler_2020_tunnel_med_Egholm*n;
         ytunel=biler_2020_tunnel_med_Egholm+vtunel;
-        Egholm_trafik=28700;
+        
         if(ybro>kapacitet_bro){
             ekstravaegt_bro=ybro-kapacitet_bro;}
             if(ytunel>kapacitet_tunnel){
                ekstravaegt_tunnel=ytunel-kapacitet_tunnel;}
-               Egholm_trafik=ekstravaegt_bro+ekstravaegt_tunnel+Egholm_trafik;
-    }
+               Egholm_trafik=ekstravaegt_bro+ekstravaegt_tunnel+28700;
     
-            printf("Egholms kapacitet bliver opbrugt i ar : %d\n",k-1);
-            return k-1;
+    
+            printf(" ar : %d \t trafik tallet: %d\n",k,Egholm_trafik);
+            return Egholm_trafik;
+}
+int* search_bro (int bro[antal_baner][laengde_af_bro]){
+    int i,j;
+    int *pointer=(int *)malloc(antal_baner*laengde_af_bro*sizeof(int));
+  for(i=0; i<antal_baner; i++) {
+      for(j=0;j<laengde_af_bro;j++) {
+          pointer[i*laengde_af_bro+j]=bro[i][j];
+            /*printf("%d",pointer[i*laengde_af_bro+j]);*/
+          if(bro[i][j]!=1){
+              printf("");
+            }
+          else {
+              printf("there is a car in %d %d\n",i,j);
+            }
+
+        }
+        printf("\n");
+    }
+
+    
+          return pointer;
+
 }
