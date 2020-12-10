@@ -1,6 +1,9 @@
-#include <stdio.h> 
+#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
+#include <unistd.h> 
+
 #define biler_2020 125200
 #define total_arlig_vaekst 0.027
 #define arlig_vaekst_bro 0.0117
@@ -9,92 +12,241 @@
 #define biler_2020_tunnel 90800
 #define biler_2020_bro_med_Egholm 26900
 #define biler_2020_tunnel_med_Egholm 69600
-#define kapacitet_bro    31000
+#define kapacitet_bro 31000
 #define kapacitet_tunnel 80000
 #define kapacitet_egholm 59000
 #define antal_baner 2
 #define laengde_af_bro 105
 
-float Egholm_linje(int k,int Egholm_trafik);
-int* search_bro (int bro[antal_baner][laengde_af_bro]);
+#define MYLDRETID_VAEGT 0.33
+#define FREE_FLOW_VAEGT 0.02
+#define TIME_PAA_DAG 24
+#define SEK_PAA_TIME 3600
 
-int main (void){
-    int i,j,k;
-    int Egholmtrafik=28700;
-    int bro[antal_baner][laengde_af_bro];
-    int *B;
-    for(i=0; i<antal_baner; i++) {
-      for(j=0;j<laengde_af_bro;j++) {
-          bro[i][j]=0;
-          bro[0][1]=1;
-          bro[1][50]=1;
-          printf("%d",bro[i][j]);
-          if (j==(laengde_af_bro-1)){
-              printf("\n");
-              }}}
+float Egholm_linje(int k, int Egholm_trafik);
+void Bro(int bro[antal_baner][laengde_af_bro], int Egholmtrafik, int time);
+int *search_bro(int bro[antal_baner][laengde_af_bro]);
+int *Fordeling(int num_af_biler, double vaegt);
+double Unif(int start, int slut);
 
-     for (k=2020;Egholmtrafik<kapacitet_egholm;k++){
-        Egholmtrafik=Egholm_linje(k,Egholmtrafik);
-        printf("\n");
+int main(void){
+  int i, j, k, time;
+  int Egholmtrafik = 28700;
+  int bro[antal_baner][laengde_af_bro];
 
-        B=search_bro(bro);
+  for (k = 2020; /* Egholmtrafik < kapacitet_egholm */k<2021; k++)
+  {
+    for (i = 0; i < antal_baner; i++)
+    {
+      for (j = 0; j < laengde_af_bro; j++)
+      {
+        bro[i][j] = 0;
 
-        
-
-        for(i=0; i<antal_baner; i++) {
-      for(j=0;j<laengde_af_bro;j++) {
-          bro[i][j]=B[i*laengde_af_bro+j];
-           printf("%d",bro[i][j]);
-          if (j==(laengde_af_bro-1)){
-              printf("\n");
-               }}}
-     free (B);
-     }
-
-     
-
-    return 0;
-}
-
-float Egholm_linje(int k,int Egholm_trafik){
-    int n;
-    float vbro,ybro,vtunel,ytunel,ekstravaegt_bro=0,ekstravaegt_tunnel=0;
-        
-        n = k - 2020;
-        vbro=arlig_vaekst_bro*biler_2020_bro_med_Egholm*n;    
-        ybro=biler_2020_bro_med_Egholm+vbro;
-        vtunel=arlig_vaekst_tunnel*biler_2020_tunnel_med_Egholm*n;
-        ytunel=biler_2020_tunnel_med_Egholm+vtunel;
-        
-        if(ybro>kapacitet_bro){
-            ekstravaegt_bro=ybro-kapacitet_bro;}
-            if(ytunel>kapacitet_tunnel){
-               ekstravaegt_tunnel=ytunel-kapacitet_tunnel;}
-               Egholm_trafik=ekstravaegt_bro+ekstravaegt_tunnel+28700;
-    
-    
-            printf(" ar : %d \t trafik tallet: %d\n",k,Egholm_trafik);
-            return Egholm_trafik;
-}
-int* search_bro (int bro[antal_baner][laengde_af_bro]){
-    int i,j;
-    int *pointer=(int *)malloc(antal_baner*laengde_af_bro*sizeof(int));
-  for(i=0; i<antal_baner; i++) {
-      for(j=0;j<laengde_af_bro;j++) {
-          pointer[i*laengde_af_bro+j]=bro[i][j];
-            /*printf("%d",pointer[i*laengde_af_bro+j]);*/
-          if(bro[i][j]!=1){
-              printf("");
-            }
-          else {
-              printf("there is a car in %d %d\n",i,j);
-            }
-
+        printf("%d", bro[i][j]);
+        if (j == (laengde_af_bro - 1)){
+          printf("\n");
         }
-        printf("\n");
+      }
+    }
+    Egholmtrafik = Egholm_linje(k, Egholmtrafik);
+    printf("\n");
+    
+    sleep(3);
+
+    for(time=0; time<TIME_PAA_DAG; time++){
+      Bro(bro, Egholmtrafik, time);
+    }
+  }
+
+  return 0;
+}
+
+float Egholm_linje(int k, int Egholm_trafik){
+  int n;
+  float vbro, ybro, vtunel, ytunel, ekstravaegt_bro = 0, ekstravaegt_tunnel = 0;
+
+  n = k - 2020;
+
+  vbro = arlig_vaekst_bro * biler_2020_bro_med_Egholm * n;
+  ybro = biler_2020_bro_med_Egholm + vbro;
+
+  vtunel = arlig_vaekst_tunnel * biler_2020_tunnel_med_Egholm * n;
+  ytunel = biler_2020_tunnel_med_Egholm + vtunel;
+
+  if (ybro > kapacitet_bro){
+    ekstravaegt_bro = ybro - kapacitet_bro;
+  }
+  if (ytunel > kapacitet_tunnel){
+    ekstravaegt_tunnel = ytunel - kapacitet_tunnel;
+  }
+
+  Egholm_trafik = ekstravaegt_bro + ekstravaegt_tunnel + 28700;
+
+  printf(" ar : %d \t trafik tallet: %d\n", k, Egholm_trafik);
+
+  return Egholm_trafik;
+}
+
+void Bro(int bro[antal_baner][laengde_af_bro], int Egholmtrafik, int time){
+  int sek, bane, plads, koe, ny_bil=0, foerste_plads;
+  int *B, *fordeling;
+  
+  if(time == 0 || time == 15)
+    fordeling = Fordeling(Egholmtrafik, MYLDRETID_VAEGT);
+  else
+    fordeling = Fordeling(Egholmtrafik, FREE_FLOW_VAEGT);
+  
+  for(sek=0; sek<SEK_PAA_TIME; sek++){
+    B = search_bro(bro);
+
+    for (bane = 0; bane < antal_baner; bane++){
+      for (plads = 0; plads < laengde_af_bro; plads++){
+        bro[bane][plads] = B[bane * laengde_af_bro + plads];
+      }
     }
 
-    
-          return pointer;
+    free(B);
 
+    while(koe!=0){
+      bane=0;
+      foerste_plads=0;
+      while(bane<antal_baner){
+        if(bro[bane][0]==0){
+          foerste_plads++;
+        }
+        bane++;
+      }
+
+      if(foerste_plads!=0){
+        bro[rand()%foerste_plads][0] = 1;
+        koe--;
+      }
+      else{
+        break;
+      }
+    }
+
+    while(fordeling[ny_bil] == sek){
+      bane=0;
+      foerste_plads=0;
+      while(bane<antal_baner){
+        if(bro[bane][0]==0){
+          foerste_plads++;
+        }
+        bane++;
+      }
+      if(foerste_plads!=0)
+        bro[rand()%foerste_plads][0] = 1;
+      else
+        koe++;
+
+      ny_bil++;
+    }
+
+    printf("\e[1;1H\e[2J");
+    for (bane = 0; bane < antal_baner; bane++){
+      for (plads = 0; plads < laengde_af_bro; plads++){
+        printf("%d", bro[bane][plads]);
+      }
+      printf("\n");
+    }
+    printf("\n\n");
+    sleep(1);
+  }
+
+  free(fordeling);
+}
+
+int *search_bro(int bro[antal_baner][laengde_af_bro]){
+  int i, j, g;
+  int *pointer = (int *)malloc(antal_baner * laengde_af_bro * sizeof(int));
+
+  if(pointer == NULL){
+    printf("Fatal error.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (i = 0; i < antal_baner; i++)
+  {
+    for (j = 0; j < laengde_af_bro; j++)
+    {
+      pointer[i * laengde_af_bro + j] = bro[i][j];
+      /*printf("%d",pointer[i*laengde_af_bro+j]);*/
+
+      if (pointer[i * laengde_af_bro + j] == 1){
+        pointer[i * laengde_af_bro + j] = 0;
+
+        for (g = 1; g <= 4; g++){
+          if (j + g >= laengde_af_bro){
+            break;
+          }
+
+          if (bro[i][j + g] == 1){
+            pointer[i * laengde_af_bro + j + g / 2] = 1;
+            j = j + g-1;
+            break;
+          }
+        }
+
+        if (g >= 5 && j + g < laengde_af_bro){
+          pointer[i * laengde_af_bro + j + g - 1] = 1;
+          j = j + g-1;
+        }
+      }
+    }
+  }
+
+  return pointer;
+}
+
+int *Fordeling(int num_af_biler, double vaegt){
+  int i, N = num_af_biler * vaegt;
+  int *Poi_fordeling = (int *)malloc(N * sizeof(int));
+  int counter, ikke_faerdig_sorteret = 0, min, omflytnings_plads;
+  int Array_temp[N];
+
+  srand(time(NULL));
+
+  for (i = 0; i < num_af_biler*vaegt; i++)
+  {
+    Poi_fordeling[i] = Unif(0, SEK_PAA_TIME);
+  }
+
+  /* qsort(Poi_fordeling, N, sizeof(double), cmpfunc); */
+
+  while (ikke_faerdig_sorteret < N - 1)
+  {
+    min = SEK_PAA_TIME;
+
+    for (counter = ikke_faerdig_sorteret; counter < N; counter++)
+    {
+      if (Poi_fordeling[counter] < min)
+      {
+        min = Poi_fordeling[counter];
+        omflytnings_plads = counter;
+      }
+    }
+
+    if (omflytnings_plads != ikke_faerdig_sorteret)
+    {
+      Array_temp[ikke_faerdig_sorteret] = Poi_fordeling[ikke_faerdig_sorteret];
+      Poi_fordeling[ikke_faerdig_sorteret] = Poi_fordeling[omflytnings_plads];
+      Poi_fordeling[omflytnings_plads] = Array_temp[ikke_faerdig_sorteret];
+    }
+
+    ikke_faerdig_sorteret++;
+  }
+  /* 
+  for(i=0; i<FREE_FLOW;i++){
+    printf("%d\n", Poi_fordeling[i]);
+  } */
+
+  return Poi_fordeling;
+}
+
+double Unif(int start, int slut){
+  double u;
+  u = (rand() % 1000001) / 1000000.0;
+  u = u * (slut - start) + start;
+  return u;
 }
