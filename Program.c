@@ -3,7 +3,6 @@
 #include <math.h>
 #include <time.h>
 #include <unistd.h>
-/* #include <errno.h> */
 
 #define BILER_2020 125200
 #define TOTAL_AARLIG_VAEKST 0.027
@@ -175,7 +174,8 @@ void Simulation(void){
       Bro(bro, Egholmtrafik/2, time);
     }
     
-    printf("\e[1;1H\e[2J");
+    /* printf("\e[1;1H\e[2J"); */
+    system("clear");
   }
 }
 
@@ -186,17 +186,17 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time){
   int Fordeling_myldretid[(int)(Egholmtrafik * MYLDRETID_VAEGT)];
 
   if (time == 7 || time == 15){
-    /* fordeling = Fordeling(Egholmtrafik, MYLDRETID_VAEGT); */
     Fordeling(Fordeling_myldretid, Egholmtrafik, MYLDRETID_VAEGT);
     fordeling = Fordeling_myldretid;
   }
   else{
-    /* fordeling = Fordeling(Egholmtrafik, FREE_FLOW_VAEGT); */
     Fordeling(Fordeling_free_flow, Egholmtrafik, FREE_FLOW_VAEGT);
     fordeling = Fordeling_free_flow;
   }
 
   for (sek = 0; sek < SEK_PAA_TIME; sek++){
+    printf("Den %d time.\t Det %d sek.\n", time, sek);
+
     search_bro(bro);
 
     while (koe != 0){
@@ -235,10 +235,8 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time){
       ny_bil++;
     }
 
-    /* system("close"); */
-    printf("\e[1;1H\e[2J");
-
-    printf("Den %d time.\n", time);
+    printf("Antal biler i koe: %d\n", koe);
+    
     for (bane = 0; bane < ANTAL_BANER; bane++){
       for (plads = 0; plads < LAENGDE_AF_BRO; plads++){
         printf("%ld", bro[bane][plads]);
@@ -246,11 +244,12 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time){
       printf("\n");
     }
     printf("\n\n");
-    printf("Antal biler i koe: %d", koe);
-    sleep(0.1);
-  }
 
-  /* free(fordeling); */
+    system("clear");
+    /* printf("\e[1;1H\e[2J"); */
+
+    /* sleep(0.1); */
+  }
 }
 
 void search_bro(long int bro[][LAENGDE_AF_BRO]){
@@ -283,12 +282,10 @@ void search_bro(long int bro[][LAENGDE_AF_BRO]){
 }
 
 void Fordeling(int fordeling[], int num_af_biler, double vaegt){
-  int i, N = num_af_biler * vaegt;
-  /* int *Poi_fordeling = (int *)malloc(N * sizeof(int)); */
+  int i, N = num_af_biler * vaegt, temp_var;
   int counter, ikke_faerdig_sorteret = 0, min, omflytnings_plads;
   int *Array_temp = (int *)malloc(N * sizeof(int));
 
-  /* if (Poi_fordeling == NULL) */
   if (fordeling == NULL){
     printf("Fatal error.\n");
     exit(EXIT_FAILURE);
@@ -298,7 +295,6 @@ void Fordeling(int fordeling[], int num_af_biler, double vaegt){
 
   for (i = 0; i < N; i++){
     fordeling[i] = Unif(0, SEK_PAA_TIME);
-    /* Poi_fordeling[i] = Unif(0, SEK_PAA_TIME); */
   }
 
   /* qsort(Poi_fordeling, N, sizeof(double), cmpfunc); */
@@ -307,29 +303,22 @@ void Fordeling(int fordeling[], int num_af_biler, double vaegt){
     min = SEK_PAA_TIME;
 
     for (counter = ikke_faerdig_sorteret; counter < N; counter++){
-      /* if (Poi_fordeling[counter] < min) */
       if (fordeling[counter] < min){
-        /* min = Poi_fordeling[counter]; */
         min = fordeling[counter];
         omflytnings_plads = counter;
       }
     }
 
     if (omflytnings_plads != ikke_faerdig_sorteret){
-      /* Array_temp[ikke_faerdig_sorteret] = Poi_fordeling[ikke_faerdig_sorteret];
-      Poi_fordeling[ikke_faerdig_sorteret] = Poi_fordeling[omflytnings_plads];
-      Poi_fordeling[omflytnings_plads] = Array_temp[ikke_faerdig_sorteret]; */
-      Array_temp[ikke_faerdig_sorteret] = fordeling[ikke_faerdig_sorteret];
+      temp_var = fordeling[ikke_faerdig_sorteret];
       fordeling[ikke_faerdig_sorteret] = fordeling[omflytnings_plads];
-      fordeling[omflytnings_plads] = Array_temp[ikke_faerdig_sorteret];
+      fordeling[omflytnings_plads] = temp_var;
     }
 
     ikke_faerdig_sorteret++;
   }
 
   free(Array_temp);
-
-  /* return Poi_fordeling; */
 }
 
 double Unif(int start, int slut){
