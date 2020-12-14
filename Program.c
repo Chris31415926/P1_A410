@@ -4,6 +4,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#define ANTAL_BANER 2
+#define LAENGDE_AF_BRO 105
+
 #define BILER_2020 125200
 #define TOTAL_AARLIG_VAEKST 0.027
 #define AARLIG_VAEKST_BRO 0.0117
@@ -14,22 +17,18 @@
 #define BILER_2020_TUNNEL_MED_EGHOLM 69600
 #define KAPACITET_BRO 31000
 #define KAPACITET_TUNNEL 80000
-#define KAPACITET_EGHOLM 59000
-
-#define ANTAL_BANER 2
-#define LAENGDE_AF_BRO 105
+#define KAPACITET_EGHOLM 59000/2*ANTAL_BANER
 
 #define MYLDRETID_VAEGT 0.33
 #define FREE_FLOW_VAEGT 0.02
 #define TIME_PAA_DAG 24
 #define SEK_PAA_TIME 3600
 
- 
 float antal_biler (float vaekst,int antalbiler,float med_egholm); 
 float Egholm_linje(int k, int Egholm_trafik);
 void Kapacitet (void); 
-void Simulation(void);
-void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time);
+void Simulation(int print_overgang);
+void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time, int print_overgang, int aar, long int Tabel[][4]);
 void search_bro(long int bro[][LAENGDE_AF_BRO]);
 void Fordeling(int fordeling[], int num_af_biler, double vaegt);
 double Unif(int start, int slut);
@@ -43,7 +42,8 @@ int main(void){
   printf("3. Trafik pa Limfjordstunnellen helt til bestemt ar.\n");
   printf("4. Trafik pa Egholmslinjen.\n");
   printf("5. Tidspunktet hvor overgangeneskapacitet bliver opbrugt.\n");
-  printf("6. Simulation af broen.\n");
+  printf("6. Fulde simulation af Egholm linjen.\n");
+  printf("7. Resultat for simulation af Egholm linjen.\n");
   printf("Indtast 0 for at komme ud fra programmet\n");
 
   printf("Valg et nummer:");
@@ -71,7 +71,10 @@ int main(void){
       Kapacitet();
     
     else if (num == 6)
-      Simulation();
+      Simulation(1);
+
+    else if (num == 7)
+      Simulation(0);
 
     printf("Du har folgende valg muligheder:\n");
     printf("1. Trafik pa alle Limfjordsovergange helt til bestemt ar.\n");
@@ -79,7 +82,8 @@ int main(void){
     printf("3. Trafik pa Limfjordstunnellen helt til bestemt ar.\n");
     printf("4. Trafik pa Egholmslinjen.\n");
     printf("5. Tidspunktet hvor overgangeneskapacitet bliver opbrugt.\n");
-    printf("6. Simulation af broen.\n");
+    printf("6. Fulde simulation af Egholm linjen.\n");
+    printf("7. Tabel over simulation af Egholm linjen.\n");
     printf("Indtast 0 for at komme ud fra programmet\n");
   
     printf("Valg et nummer:");
@@ -143,44 +147,67 @@ void Kapacitet(void){
   return ; 
 } 
 
-void Simulation(void){
-  int i, j, k, time;
+void Simulation(int print_overgang){
+  int i, j, aar, time, tabel_taeller;
   int Egholmtrafik = 28700;
-  long int bro[ANTAL_BANER][LAENGDE_AF_BRO];
+  long int bro[ANTAL_BANER][LAENGDE_AF_BRO], Tabel[100][4];
   
   printf("Simulationen starter med at køre fra år 2030\n");
 
-  for (k = 2020; k < 2030; k++){
-    Egholmtrafik = Egholm_linje(k, Egholmtrafik);
+  for (aar = 2020; aar < 2030; aar++){
+    Egholmtrafik = Egholm_linje(aar, Egholmtrafik);
     printf("\n");
+
+    Tabel[aar-2020][0] = aar;
+    Tabel[aar-2020][1] = Egholmtrafik;
+    Tabel[aar-2020][2] = 0;
+    Tabel[aar-2020][3] = 0;
   }
 
-  for (k = 2030; Egholmtrafik < KAPACITET_EGHOLM; k++){
+  for (aar = 2030; Egholmtrafik < KAPACITET_EGHOLM; aar++){
     for (i = 0; i < ANTAL_BANER; i++){
       for (j = 0; j < LAENGDE_AF_BRO; j++){
         bro[i][j] = 0;
 
-        printf("%ld", bro[i][j]);
-        if (j == (LAENGDE_AF_BRO - 1))
-          printf("\n");
+        if(print_overgang==1){
+          printf("%ld", bro[i][j]);
+          if (j == (LAENGDE_AF_BRO - 1))
+            printf("\n");
+        }
       }
     }
-    Egholmtrafik = Egholm_linje(k, Egholmtrafik);
+    Egholmtrafik = Egholm_linje(aar, Egholmtrafik);
     printf("\n");
 
-    sleep(1);
+    Tabel[aar-2020][0] = aar;
+    Tabel[aar-2020][1] = Egholmtrafik;
+    Tabel[aar-2020][2] = 0;
+    Tabel[aar-2020][3] = 0;
 
+    /* sleep(1); */
+    
     for (time = 0; time < TIME_PAA_DAG; time++){
-      Bro(bro, Egholmtrafik/2, time);
+      Bro(bro, Egholmtrafik/2, time, print_overgang, aar, Tabel);
     }
     
+    if(print_overgang==1){
     /* printf("\e[1;1H\e[2J"); */
     system("clear");
+    }
   }
+
+  printf("\nAarstal\tMaengden af biler\tSamlet koe for dagen\tBiler i koe som har ventet længere tid\n");
+  for(tabel_taeller=2030; tabel_taeller<aar; tabel_taeller++){
+    printf("%ld\t", Tabel[tabel_taeller-2020][0]);
+    printf("%ld\t\t\t", Tabel[tabel_taeller-2020][1]);
+    printf("%ld\t\t\t", Tabel[tabel_taeller-2020][2]);
+    printf("%ld\n", Tabel[tabel_taeller-2020][3]);
+  }
+  printf("\n");
 }
 
-void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time){
-  int sek, bane, plads, koe, ny_bil = 0, foerste_plads;
+void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time, int print_overgang, int aar, long int Tabel[][4]){
+  int sek, bane, plads, koe, ny_bil = 0, foerste_plads, samlet_koe = 0, koe_der_har_ventet_laengere = 0;
   int *fordeling;
   int Fordeling_free_flow[(int)(Egholmtrafik * FREE_FLOW_VAEGT)];
   int Fordeling_myldretid[(int)(Egholmtrafik * MYLDRETID_VAEGT)];
@@ -195,7 +222,9 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time){
   }
 
   for (sek = 0; sek < SEK_PAA_TIME; sek++){
-    printf("Den %d time.\t Det %d sek.\n", time, sek);
+    if(print_overgang==1){
+      printf("Den %d time.\t Det %d sek.\n", time, sek);
+    }
 
     search_bro(bro);
 
@@ -216,6 +245,7 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time){
         break;
       }
     }
+    koe_der_har_ventet_laengere+=koe;
 
     while (fordeling[ny_bil] == sek){
       bane = 0;
@@ -234,21 +264,27 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time){
 
       ny_bil++;
     }
-
-    printf("Antal biler i koe: %d\n", koe);
+    samlet_koe+=koe;
     
-    for (bane = 0; bane < ANTAL_BANER; bane++){
-      for (plads = 0; plads < LAENGDE_AF_BRO; plads++){
-        printf("%ld", bro[bane][plads]);
+    if(print_overgang == 1){
+      printf("Antal biler i koe: %d\n", koe);
+    
+      for (bane = 0; bane < ANTAL_BANER; bane++){
+        for (plads = 0; plads < LAENGDE_AF_BRO; plads++){
+          printf("%ld", bro[bane][plads]);
+        }
+        printf("\n");
       }
-      printf("\n");
+      printf("\n\n");
+
+      /* system("clear"); */
+      printf("\e[1;1H\e[2J");
+
+      /* sleep(0.1); */
     }
-    printf("\n\n");
 
-    system("clear");
-    /* printf("\e[1;1H\e[2J"); */
-
-    /* sleep(0.1); */
+    Tabel[aar-2020][2] += samlet_koe;
+    Tabel[aar-2020][3] += koe_der_har_ventet_laengere;
   }
 }
 
@@ -291,7 +327,8 @@ void Fordeling(int fordeling[], int num_af_biler, double vaegt){
     exit(EXIT_FAILURE);
   }
 
-  srand(time(NULL));
+  /* srand(time(NULL)); */
+  srand(SEK_PAA_TIME*TIME_PAA_DAG);
 
   for (i = 0; i < N; i++){
     fordeling[i] = Unif(0, SEK_PAA_TIME);
