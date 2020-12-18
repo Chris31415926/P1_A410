@@ -1,3 +1,4 @@
+/* Biblioteker */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -5,6 +6,7 @@
 #include <unistd.h>
 /* #include <windows.h> */
 
+/* Predefinerede variabler */
 #define LAENGDE_AF_BRO 105
 #define BILER_2020 125200
 #define TOTAL_AARLIG_VAEKST 0.027
@@ -23,16 +25,18 @@
 #define TIME_PAA_DAG 24
 #define SEK_PAA_TIME 3600
 
+/* Prototyper */
 int Antal_biler (float vaekst, int antalbiler, float med_egholm); 
 int Egholm_linje(int k, int egholm_trafik);
 void Kapacitet (int antal_baner); 
 void Simulation(int print_overgang, int baner);
 void Et_aar_simulation(int antal_baner);
 void Bro(long int bro[][LAENGDE_AF_BRO], int Egholmtrafik, int time, int print_overgang, int aar, long int Tabel[][4], int antal_baner);
-void search_bro(long int bro[][LAENGDE_AF_BRO], int antal_baner);
+void search_bro(long int bro[][LAENGDE_AF_BRO], int antal_baner, int koer_frem);
 void Fordeling(int fordeling[], int num_af_biler, double vaegt);
 double Unif(int start, int slut);
 
+/* Her er main funktionen, som sammenbinder alle andre funktioner ved brug af en menu over mulige operationer som programmet kan foretage sig. */
 int main(void){
   int input, egholmtrafik = BILER_2020_EGHOLM, year, antal_baner, counter;
   
@@ -49,7 +53,8 @@ int main(void){
 
   printf("Valg et nummer:");
   scanf("%d", &input);
-
+  
+  /* While løkke der køre så længe brugeren ikke skriver 0. Lukker programmet når input er 0. */
   while (input != 0){
     if (input == 1){
       Antal_biler(TOTAL_AARLIG_VAEKST, BILER_2020, BILER_2020);}
@@ -110,6 +115,7 @@ int main(void){
   return EXIT_SUCCESS;
 }
 
+/*Funktionen antal_biler dækker over valgmulighed 1-3, her udregnes fremskrivningen i trafik per år til et bestemt år, den viser antal med og uden egholms trafik. Den kører vha. et for-loop, så længe at aar<=slut_aar, hvor slut_aar ikke er assignet, så derfor kan den kører til hvilket som helst årstal. Den printer til sidst alle resultater per år. */ 
 int Antal_biler (float vaekst, int antal_biler, float antal_biler_med_egholm){ 
   int aar, slut_aar, ny_maengde_biler, ny_maengde_biler_med_egholm, ikke_start_aar=0;
   
@@ -133,9 +139,10 @@ int Antal_biler (float vaekst, int antal_biler, float antal_biler_med_egholm){
   return ny_maengde_biler_med_egholm;
 } 
 
+/* Dækker over valgmulighed 4, og udregner fremskrivningen i trafik på egholmslinjen per år. Dette gøres vha. simple matematiske udregninger med vores konstanter, som er defineret i starten af programmet. */ 
 int Egholm_linje(int aar, int egholm_trafik){
   int ikke_start_aar=0, counter;
-  float biler_bro_med_egholm = BILER_2020_BRO_MED_EGHOLM, biler_tunnel_med_egholm = BILER_2020_TUNNEL_MED_EGHOLM;
+  int biler_bro_med_egholm = BILER_2020_BRO_MED_EGHOLM, biler_tunnel_med_egholm = BILER_2020_TUNNEL_MED_EGHOLM;
   float ekstravaegt_bro = 0, ekstravaegt_tunnel = 0;
 
   for(counter=2020; counter<=aar; counter++){
@@ -153,12 +160,12 @@ int Egholm_linje(int aar, int egholm_trafik){
       ekstravaegt_tunnel = biler_tunnel_med_egholm - KAPACITET_TUNNEL;
 
     egholm_trafik = ekstravaegt_bro + ekstravaegt_tunnel + BILER_2020_EGHOLM;
-  }/* 
-  printf("Aar : %d \t Trafik tallet: %d\n", aar, egholm_trafik); */
+  }
 
   return egholm_trafik;
 }
 
+/*Dækker over mulighed 5. Kapaciteten per overgang er defineret som en konstant, da hver overgang kun kan håndtere en hvis mængde trafik og vi har derfor kigget på vores udregninger og set i hvilket årstal dette er overskredet igen. Dette printes, så for hver overgang, hvor der vises, kapacitet årstal det overskrevet, og med hvor mange biler */ 
 void Kapacitet(int antal_baner){ 
   int biler_bro_med_egholm, biler_tunnel_med_egholm, egholm_trafik;
   int ikke_start_aar=0, ekstravaegt_bro=0, ekstravaegt_tunnel=0, out_bro=0, out_tunel=0;
@@ -240,7 +247,7 @@ void Simulation(int print_overgang,int antal_baner){
     Tabel[aar-2020][3] = 0;
 
     /* Sleep(1000); */
-    sleep(3);
+    /*sleep(3);*/
     
     for (time = 0; time < TIME_PAA_DAG; time++){
       Bro(bro, egholmtrafik/2, time, print_overgang, aar, Tabel, antal_baner);
@@ -291,7 +298,7 @@ void Et_aar_simulation(int antal_baner){
   
   printf("\n"); 
  
-  sleep(2); 
+  /*sleep(1);*/ 
  
   Bro(bro, egholmtrafik/2, klok, 1, 2020, Tabel, antal_baner); 
   
@@ -304,7 +311,7 @@ void Et_aar_simulation(int antal_baner){
 } 
 
 void Bro(long int bro[][LAENGDE_AF_BRO], int egholmtrafik, int time, int print_overgang, int aar, long int Tabel[][4], int antal_baner){
-  int sek, bane, plads, koe, ny_bil = 0, foerste_plads, samlet_koe = 0, koe_der_har_ventet_laengere = 0;
+  int sek, bane, plads, koe, ny_bil = 0, foerste_plads, samlet_koe = 0, koe_der_har_ventet_laengere = 0, koer_frem;
   int *fordeling;
   int Fordeling_free_flow[(int)(egholmtrafik * FREE_FLOW_VAEGT)];
   int Fordeling_myldretid[(int)(egholmtrafik * MYLDRETID_VAEGT)];
@@ -313,10 +320,12 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int egholmtrafik, int time, int print_o
   if (time == 7 || time == 15){
     Fordeling(Fordeling_myldretid, egholmtrafik, MYLDRETID_VAEGT);
     fordeling = Fordeling_myldretid;
+    koer_frem = 2;
   }
   else{
     Fordeling(Fordeling_free_flow, egholmtrafik, FREE_FLOW_VAEGT);
     fordeling = Fordeling_free_flow;
+    koer_frem = 4;
   }
 
   for (sek = 0; sek < SEK_PAA_TIME; sek++){
@@ -324,7 +333,7 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int egholmtrafik, int time, int print_o
       printf("Den %d time.\t Det %d sek.\n", time, sek);
     }
 
-    search_bro(bro,antal_baner);
+    search_bro(bro,antal_baner, koer_frem);
 
     while (koe != 0){
       bane = 0;
@@ -375,8 +384,8 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int egholmtrafik, int time, int print_o
       }
       printf("\n\n");
 
-      /* system("cls"); */ 
-      printf("\e[1;1H\e[2J");
+       system("cls"); 
+      /*printf("\e[1;1H\e[2J");*/
 
       /* sleep(0.1); */
     }
@@ -386,7 +395,8 @@ void Bro(long int bro[][LAENGDE_AF_BRO], int egholmtrafik, int time, int print_o
   }
 }
 
-void search_bro(long int bro[][LAENGDE_AF_BRO],int antal_baner){
+/* Searh_bro funktionen har vores bro array som input og kører så længe 3 for-loops er sande, herefter tjekker den efter om der findes pladser deri, som er = 1, som er det samme som en bil. Hvis dette er tilfældet kører den halvvejs op til næste 1 tal. Den breaker ud af funktionen, hvis vi overskrider længden af broen. */ 
+void search_bro(long int bro[][LAENGDE_AF_BRO],int antal_baner, int koer_frem){
   int counter_baner, counter_laengde, kig_frem;
 
   for (counter_baner = 0; counter_baner < antal_baner; counter_baner++){
@@ -394,7 +404,7 @@ void search_bro(long int bro[][LAENGDE_AF_BRO],int antal_baner){
       if (bro[counter_baner][counter_laengde] == 1){
         bro[counter_baner][counter_laengde] = 0;
 
-        for (kig_frem = 1; kig_frem <= 4; kig_frem++){
+        for (kig_frem = 1; kig_frem <= koer_frem; kig_frem++){
           if (counter_laengde + kig_frem >= LAENGDE_AF_BRO){
             break;
           }
@@ -406,7 +416,7 @@ void search_bro(long int bro[][LAENGDE_AF_BRO],int antal_baner){
           }
         }
 
-        if (kig_frem >= 5 && counter_laengde + kig_frem < LAENGDE_AF_BRO){
+        if (kig_frem >= koer_frem+1 && counter_laengde + kig_frem < LAENGDE_AF_BRO){
           bro[counter_baner][counter_laengde + kig_frem - 1] = 1;
           counter_laengde = counter_laengde + kig_frem - 1;
         }
